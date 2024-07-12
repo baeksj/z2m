@@ -19,10 +19,10 @@ const tzLocal = {
 						{manufacturerCode: Zcl.ManufacturerCode.SAMSUNG, disableDefaultResponse: true}
 					);
 			
-				logger.error("tzLocal.sds_lock.convertSet payload: "+JSON.stringify(result), NS);//
+				logger.debug("tzLocal.sds_lock.convertSet payload: "+JSON.stringify(result), NS);//
 			}
 
-			return {readAfterWriteTime: 200};
+			return {readAfterWriteTime: 100};
 		},
 		convertGet: async (entity, key, meta) => {
 			await entity.read('closuresDoorLock', ['lockState']);
@@ -100,7 +100,7 @@ const fzLocal = {
 					break;
 			}
 
-			logger.error("fzLocal.sds_lock.convert stateCode: "+stateCode+", controlBy: "+controlBy, NS);
+			logger.debug("fzLocal.sds_lock.convert stateCode: "+stateCode+", controlBy: "+controlBy, NS);
 				
 			return {
 				id: id,
@@ -112,9 +112,8 @@ const fzLocal = {
     },
 	sds_battery: {
         cluster: 'genPowerCfg',
-        type: ['attributeReport', 'readResponse','raw'],
+        type: ['attributeReport', 'readResponse'],
         convert: (model, msg, publish, options, meta) => {
-			logger.error("fzLocal.sds_battery.convert msg: "+JSON.stringify(msg), NS);
             return {battery: 100}
         },
 	}
@@ -127,7 +126,7 @@ const definitions = [
 		vendor: 'SAMSUNG SDS',
 		description: 'Samsung SDS Door Lock',
 		fingerprint: [{modelID: '', manufacturerName: 'SAMSUNG SDS'}],
-		fromZigbee: [fzLocal.sds_lock, fzLocal.sds_battery],
+		fromZigbee: [fz.lock, fzLocal.sds_lock, fzLocal.sds_battery],
 		toZigbee: [tzLocal.sds_lock],
 		meta: {battery: {voltageToPercentage: '3V_2100'}},
 		exposes: [
@@ -144,8 +143,8 @@ const definitions = [
 			device.powerSource = 'Battery';
 			device.save();
 		},
-		onEvent: async (type, data, device) => {
-			logger.error("onEvent type: "+type+", data: "+JSON.stringify(data), NS);
+		onEvent: async (type, data, device, options, state) => {
+			logger.debug("onEvent type: "+type+", data: "+JSON.stringify(data), NS);
 		}
 	}
 ];
