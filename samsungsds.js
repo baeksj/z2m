@@ -13,16 +13,14 @@ const tzLocal = {
         key: ['state'],
 		convertSet: async (entity, key, value, meta) => {
 			if(value == 'UNLOCK') {
-				let result = await entity.command('closuresDoorLock',
+				await entity.command('closuresDoorLock',
 						'samsungUnlockDoor',
 						{'data': [16, 4, 49, 50, 51, 53]},
-						{manufacturerCode: Zcl.ManufacturerCode.SAMSUNG, disableDefaultResponse: true}
+						{manufacturerCode: Zcl.ManufacturerCode.SAMSUNG, disableDefaultResponse: true, disableResponse: true}
 					);
-			
-				logger.debug("tzLocal.sds_lock.convertSet payload: "+JSON.stringify(result), NS);//
 			}
 
-			return {readAfterWriteTime: 100};
+			//return {readAfterWriteTime: 100};
 		},
 		convertGet: async (entity, key, meta) => {
 			await entity.read('closuresDoorLock', ['lockState']);
@@ -48,19 +46,19 @@ const fzLocal = {
 					state = 'UNLOCK';
 					lock_state = 'unlocked';
 					if (controlBy == 0) {
-						operated_by = 'By Lock Code'
+						operated_by = 'Lock Code'
 					} else if (controlBy == 4) {
-						operated_by = 'By Fingerprint'
-						id = 'finger-' + (msg.data[5] - 30);
+						operated_by = 'Fingerprint'
+						id = 'F-' + (msg.data[5] - 30);
 					} else if (controlBy == 3) {
-						operated_by = 'By RFID Tag'
-						id = 'rfid-' + (msg.data[5] - 2);
+						operated_by = 'RFID Tag'
+						id = 'R-' + (msg.data[5] - 2);
 					} else if (controlBy == 5) {
-						operated_by = 'By Bluetooth'
+						operated_by = 'Bluetooth'
 					} else if (controlBy == 2) {
-						operated_by = 'By Manual'
+						operated_by = 'Manual'
 					} else if (controlBy == 1) {
-						operated_by = 'By Key'
+						operated_by = 'Key'
 					}
 					break;
 				case 7:
@@ -76,17 +74,17 @@ const fzLocal = {
 				case 9:
 					state = 'UNLOCK';
 					lock_state = 'unlocked';
-					operated_by = 'By Key';
+					operated_by = 'Key';
 					break;
 				case 13:
 					state = 'LOCK';
 					lock_state = 'locked';
-					operated_by = 'By Key';
+					operated_by = 'Key';
 					break;
 				case 14:
 					state = 'UNLOCK';
 					lock_state = 'unlocked';
-					operated_by = 'From Inside';
+					operated_by = 'InsideHandle';
 					break;
 				case 10:
 					state = 'LOCK';
@@ -101,19 +99,22 @@ const fzLocal = {
 			}
 
 			logger.debug("fzLocal.sds_lock.convert stateCode: "+stateCode+", controlBy: "+controlBy, NS);
-				
-			return {
-				id: id,
-				lock_state: lock_state,
-				operated_by: operated_by,
-				state: state,
-			};
+
+			if(state) {
+				return {
+					id: id,
+					lock_state: lock_state,
+					operated_by: operated_by,
+					state: state,
+				};
+			}
         },
     },
 	sds_battery: {
         cluster: 'genPowerCfg',
         type: ['attributeReport', 'readResponse'],
         convert: (model, msg, publish, options, meta) => {
+			logger.debug("fzLocal.sds_battery.convert msg: "+JSON.stringify(msg), NS);
             return {battery: 100}
         },
 	}
@@ -126,7 +127,7 @@ const definitions = [
 		vendor: 'SAMSUNG SDS',
 		description: 'Samsung SDS Door Lock',
 		fingerprint: [{modelID: '', manufacturerName: 'SAMSUNG SDS'}],
-		fromZigbee: [fz.lock, fzLocal.sds_lock, fzLocal.sds_battery],
+		fromZigbee: [fzLocal.sds_lock, fzLocal.sds_battery],
 		toZigbee: [tzLocal.sds_lock],
 		meta: {battery: {voltageToPercentage: '3V_2100'}},
 		exposes: [
