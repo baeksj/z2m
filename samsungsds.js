@@ -9,30 +9,25 @@ const {Zcl} = require('zigbee-herdsman');
 const NS = 'zhc:samsungsds';
 
 const tzLocal = {
-    sds_lock: {
-        key: ['state'],
+	sds_lock: {
+		key: ['state'],
 		convertSet: async (entity, key, value, meta) => {
 			if(value == 'UNLOCK') {
 				await entity.command('closuresDoorLock',
-						'samsungUnlockDoor',
-						{'data': [16, 4, 49, 50, 51, 53]},
-						{manufacturerCode: Zcl.ManufacturerCode.SAMSUNG, disableDefaultResponse: true, disableResponse: true}
-					);
+					'samsungUnlockDoor',
+					{'data': [16, 4, 49, 50, 51, 53]},
+					{manufacturerCode: Zcl.ManufacturerCode.SAMSUNG, disableDefaultResponse: true, disableResponse: true}
+				);
 			}
-
-			//return {readAfterWriteTime: 100};
 		},
-		convertGet: async (entity, key, meta) => {
-			await entity.read('closuresDoorLock', ['lockState']);
-		},
-    },
+	},
 };
 
 const fzLocal = {
-    sds_lock: {
-        cluster: 'closuresDoorLock',
-        type: ['raw'],
-        convert: (model, msg, publish, options, meta) => {
+	sds_lock: {
+		cluster: 'closuresDoorLock',
+		type: ['raw'],
+		convert: (model, msg, publish, options, meta) => {
 
 			const controlBy = msg.data[3];
 			const stateCode = msg.data[4];
@@ -40,7 +35,7 @@ const fzLocal = {
 			let lock_state = '';
 			let operated_by = '';
 			let id = ''
-		
+
 			switch (stateCode) {
 				case 2:
 					state = 'UNLOCK';
@@ -84,7 +79,7 @@ const fzLocal = {
 				case 14:
 					state = 'UNLOCK';
 					lock_state = 'unlocked';
-					operated_by = 'InsideHandle';
+					operated_by = 'Inside Handle';
 					break;
 				case 10:
 					state = 'LOCK';
@@ -108,15 +103,14 @@ const fzLocal = {
 					state: state,
 				};
 			}
-        },
-    },
+		},
+	},
 	sds_battery: {
-        cluster: 'genPowerCfg',
-        type: ['attributeReport', 'readResponse'],
-        convert: (model, msg, publish, options, meta) => {
-			logger.debug("fzLocal.sds_battery.convert msg: "+JSON.stringify(msg), NS);
-            return {battery: 100}
-        },
+		cluster: 'genPowerCfg',
+		type: ['attributeReport', 'readResponse'],
+		convert: (model, msg, publish, options, meta) => {
+			return {battery: 100}
+		},
 	}
 };
 
@@ -127,9 +121,13 @@ const definitions = [
 		vendor: 'SAMSUNG SDS',
 		description: 'Samsung SDS Door Lock',
 		fingerprint: [{modelID: '', manufacturerName: 'SAMSUNG SDS'}],
-		fromZigbee: [fzLocal.sds_lock, fzLocal.sds_battery],
-		toZigbee: [tzLocal.sds_lock],
-		meta: {battery: {voltageToPercentage: '3V_2100'}},
+		fromZigbee: [
+			fzLocal.sds_lock,
+			fzLocal.sds_battery,
+		],
+		toZigbee: [
+			tzLocal.sds_lock
+		],
 		exposes: [
 			e.lock(),
 			e.battery(),
