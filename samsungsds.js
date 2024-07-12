@@ -3,10 +3,30 @@ const exposes = require('zigbee-herdsman-converters/lib/exposes');
 const reporting = require('zigbee-herdsman-converters/lib/reporting');
 const e = exposes.presets;
 const ea = exposes.access;
+const {deviceAddCustomCluster} = require('zigbee-herdsman-converters/lib/modernExtend');
 const {logger} = require('zigbee-herdsman-converters/lib/logger');
 const {Zcl} = require('zigbee-herdsman');
 
 const NS = 'zhc:samsungsds';
+
+const samsungsdsModernExtend = {
+	addCustomClusterClosuresDoorLock: () =>
+		deviceAddCustomCluster('closuresDoorLock', {
+			ID: 257,
+			attributes: {
+				lockState: {ID: 0, type: Zcl.DataType.ENUM8},
+			},
+			commands: {
+				samsungUnlockDoor: {
+					ID: 31,
+					response: 31,
+					parameters: [{name: 'data', type: Zcl.BuffaloZclDataType.LIST_UINT8}],
+				},
+			},
+			commandsResponse: {
+			},
+		}),
+};
 
 const tzLocal = {
 	sds_lock: {
@@ -133,6 +153,9 @@ const definitions = [
 			e.battery(),
 			e.text('operated_by', ea.STATE).withDescription('How the last state of the door lock was changed.'),
 			e.text('id', ea.STATE).withDescription('ID of the key that last changed the state of the door lock.'),
+		],
+		extend: [
+			samsungsdsModernExtend.addCustomClusterClosuresDoorLock(),
 		],
 		configure: async (device, coordinatorEndpoint) => {
 			const endpoint = device.getEndpoint(1);
